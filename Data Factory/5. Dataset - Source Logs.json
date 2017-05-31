@@ -1,0 +1,118 @@
+{
+    "name": "AccessLogFiles",
+    "properties": {
+        "structure": [
+            {
+                "name": "IpAddress",
+                "type": "String"
+            },
+            {
+                "name": "col1",
+                "type": "String"
+            },
+            {
+                "name": "col2",
+                "type": "String"
+            },
+            {
+                "name": "DateStr",
+                "type": "String"
+            },
+            {
+                "name": "Request",
+                "type": "String"
+            },
+            {
+                "name": "Code",
+                "type": "Int16"
+            },
+            {
+                "name": "col3",
+                "type": "String"
+            },
+            {
+                "name": "col4",
+                "type": "String"
+            },
+            {
+                "name": "col5",
+                "type": "String"
+            },
+            {
+                "name": "col6",
+                "type": "String"
+            },
+            {
+                "name": "col7",
+                "type": "String"
+            }
+        ],
+        "published": false,
+        "type": "AzureBlob",
+        "linkedServiceName": "AzureStorageLinkedService",
+        "typeProperties": {
+            "folderPath": "input/{Year}/{Month}/{Day}/{Hour}/",
+            "format": {
+                "type": "TextFormat",
+                "rowDelimiter": "\n",
+                "columnDelimiter": "|",
+                "escapeChar": "",
+                "nullValue": "NULL",
+                "treatEmptyAsNull": true,
+                "skipLineCount": 0,
+                "firstRowAsHeader": false
+            },
+            "partitionedBy": [
+                {
+                    "name": "Year",
+                    "value": {
+                        "type": "DateTime",
+                        "date": "SliceStart",
+                        "format": "yyyy"
+                    }
+                },
+                {
+                    "name": "Month",
+                    "value": {
+                        "type": "DateTime",
+                        "date": "SliceStart",
+                        "format": "MM"
+                    }
+                },
+                {
+                    "name": "Day",
+                    "value": {
+                        "type": "DateTime",
+                        "date": "SliceStart",
+                        "format": "dd"
+                    }
+                },
+                {
+                    "name": "Hour",
+                    "value": {
+                        "type": "DateTime",
+                        "date": "SliceStart",
+                        "format": "HH"
+                    }
+                }
+            ]
+        },
+        "availability": {
+            "frequency": "Hour",
+            "interval": 1,
+            "style": "EndOfInterval"
+        },
+        "external": true,
+        "policy": {
+            "validation": {
+                "minimumRows": 10,
+                "minimumSizeMB": 0.0001
+            },
+            "externalData": {
+                "retryInterval": "00:01:00",
+                "retryTimeout": "00:10:00",
+                "maximumRetry": 3
+            }
+        }
+    }
+}

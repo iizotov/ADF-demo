@@ -1,0 +1,28 @@
+{
+    "name": "FreqTable",
+    "properties": {
+        "structure": [
+            {
+                "name": "Code"
+            },
+            {
+                "name": "Frequency"
+            },
+            {
+                "name": "DateTime"
+            }
+        ],
+        "published": false,
+        "type": "AzureSqlTable",
+        "linkedServiceName": "AzureSqlLinkedService",
+        "typeProperties": {
+            "tableName": "fact_freq"
+        },
+        "availability": {
+            "frequency": "Day",
+            "interval": 1
+        },
+        "external": false,
+        "policy": {}
+    }
+}

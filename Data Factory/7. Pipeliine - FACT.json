@@ -1,0 +1,40 @@
+{
+    "name": "FACT",
+    "properties": {
+        "description": "Update the frequency table",
+        "activities": [
+            {
+                "type": "SqlServerStoredProcedure",
+                "typeProperties": {
+                    "storedProcedureName": "sp_calculateFrequency",
+                    "storedProcedureParameters": {}
+                },
+                "inputs": [
+                    {
+                        "name": "StagingTable"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "name": "FreqTable"
+                    }
+                ],
+                "policy": {
+                    "timeout": "01:00:00",
+                    "concurrency": 1,
+                    "retry": 3
+                },
+                "scheduler": {
+                    "frequency": "Day",
+                    "interval": 1
+                },
+                "name": "StoredProcedureActivityTemplate"
+            }
+        ],
+        "start": "2014-05-06T20:00:00Z",
+        "end": "2014-06-22T04:00:00Z",
+        "isPaused": false,
+        "hubName": "demodatafactory-df_hub",
+        "pipelineMode": "Scheduled"
+    }
+}

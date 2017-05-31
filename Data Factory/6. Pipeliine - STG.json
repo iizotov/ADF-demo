@@ -1,0 +1,51 @@
+{
+    "name": "STG",
+    "properties": {
+        "description": "Copy from Blob to Staging",
+        "activities": [
+            {
+                "type": "Copy",
+                "typeProperties": {
+                    "source": {
+                        "type": "BlobSource"
+                    },
+                    "sink": {
+                        "type": "SqlSink",
+                        "sliceIdentifierColumnName": "ADFSliceIdentifier",
+                        "writeBatchSize": 50,
+                        "writeBatchTimeout": "00:10:00"
+                    },
+                    "translator": {
+                        "type": "TabularTranslator",
+                        "columnMappings": "IpAddress: IpAddress, DateStr: DateStr, Request: Request, Code: Code"
+                    }
+                },
+                "inputs": [
+                    {
+                        "name": "AccessLogFiles"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "name": "StagingTable"
+                    }
+                ],
+                "policy": {
+                    "timeout": "01:00:00",
+                    "concurrency": 10,
+                    "retry": 3
+                },
+                "scheduler": {
+                    "frequency": "Hour",
+                    "interval": 1
+                },
+                "name": "CopyFromBlobToSQL"
+            }
+        ],
+        "start": "2014-05-06T20:00:00Z",
+        "end": "2014-06-22T04:00:00Z",
+        "isPaused": false,
+        "hubName": "demodatafactory-df_hub",
+        "pipelineMode": "Scheduled"
+    }
+}

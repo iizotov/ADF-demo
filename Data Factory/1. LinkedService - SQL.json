@@ -1,0 +1,11 @@
+{
+    "name": "AzureSqlLinkedService",
+    "properties": {
+        "description": "",
+        "hubName": "demodatafactory-df_hub",
+        "type": "AzureSqlDatabase",
+        "typeProperties": {
+            "connectionString": "Data Source=tcp:demo-datafactorysqlserver.database.windows.net,1433;Initial Catalog=Demo-DataFactorySQLDB;Integrated Security=False;User ID=sqladmin;Password=**********;Connect Timeout=30;Encrypt=True"
+        }
+    }
+}

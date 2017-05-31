@@ -1,0 +1,75 @@
+{
+    "$schema":"https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion":"1.0.0.0",
+    "parameters":{
+        "location":{
+            "defaultValue":"Australia East",
+            "type":"string",
+            "allowedValues":[
+                "Australia East",
+                "Australia Southeast",
+                "Brazil South",
+                "Canada Central",
+                "Canada East",
+                "Central India",
+                "Central US",
+                "East Asia",
+                "East US",
+                "East US 2",
+                "Japan East",
+                "Japan West",
+                "North Central US",
+                "North Europe",
+                "South Central US",
+                "South India",
+                "Southeast Asia",
+                "UK South",
+                "UK West",
+                "West Central US",
+                "West Europe",
+                "West India",
+                "West US",
+                "West US 2"
+            ]
+        }
+    },
+    "variables":{
+        "storageAccountName":"[concat('storage', uniqueString(resourceGroup().id))]",
+    },
+    "resources":[
+        {
+            "comments":"",
+            "type":"Microsoft.Storage/storageAccounts",
+            "sku":{
+                "name":"Standard_RAGRS",
+                "tier":"Standard"
+            },
+            "kind":"Storage",
+            "name":"[variables('storageAccountName')]",
+            "apiVersion":"2016-01-01",
+            "location":"[parameters('location')]",
+            "tags":{
+
+            },
+            "properties":{
+
+            },
+            "resources":[
+
+            ],
+            "dependsOn":[
+
+            ]
+        }
+    ],
+    "outputs":{
+        "storageAccountName":{
+            "type":"string",
+            "value":"[variables('storageAccountName')]"
+        },
+		"storageAccountKey":{
+			"type":"string",
+			"value":"[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+		}
+    }
+}

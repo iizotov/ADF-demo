@@ -1,0 +1,523 @@
+{
+    "$schema":"https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion":"1.0.0.0",
+    "parameters":{
+        "location":{
+            "defaultValue":"Australia East",
+            "type":"string",
+            "allowedValues":[
+                "Australia East",
+                "Australia Southeast",
+                "Brazil South",
+                "Canada Central",
+                "Canada East",
+                "Central India",
+                "Central US",
+                "East Asia",
+                "East US",
+                "East US 2",
+                "Japan East",
+                "Japan West",
+                "North Central US",
+                "North Europe",
+                "South Central US",
+                "South India",
+                "Southeast Asia",
+                "UK South",
+                "UK West",
+                "West Central US",
+                "West Europe",
+                "West India",
+                "West US",
+                "West US 2"
+            ]
+        },
+        "sqlAdministratorLogin":{
+            "type":"string",
+            "metadata":{
+                "description":"The admin user of the SQL Server"
+            }
+        },
+        "sqlAdministratorPassword":{
+            "type":"securestring",
+            "metadata":{
+                "description":"The password of the admin user of the SQL Server"
+            }
+        }
+    },
+    "variables":{
+        "storageAccountName":"[concat('storage', uniqueString(resourceGroup().id))]",
+        "sqlServerName":"[concat('sqlserver', uniqueString(resourceGroup().id))]",
+        "sqlDBName":"[concat('sqldb', uniqueString(resourceGroup().id))]",
+        "dataFactoryName":"[concat('df', uniqueString(resourceGroup().id))]",
+        "storageLinkedServiceName":"blobLinkedService",
+        "sqlLinkedServiceName":"sqlLinkedService",
+        "storageDataset":"inputLogsDataset",
+        "stagingDataset":"stagingDataset",
+        "stagingPipeline":"stagingPipeline",
+        "factDataset":"factDataset",
+        "factPipeline":"factPipeline"
+    },
+    "resources":[
+        {
+            "comments":"",
+            "type":"Microsoft.Sql/servers/databases",
+            "name":"[concat(variables('sqlServerName'), '/', variables('sqlDBName'))]",
+            "apiVersion":"2014-04-01-preview",
+            "location":"[parameters('location')]",
+            "properties":{
+                "edition":"Standard",
+                "serviceLevelObjective":"S0",
+                "collation":"SQL_Latin1_General_CP1_CI_AS",
+                "requestedServiceObjectiveName":"S0"
+            },
+            "resources": [
+				{
+				  "name": "Imp",
+				  "type": "extensions",
+				  "apiVersion": "2014-04-01-preview",
+				  "dependsOn": [
+					"[variables('sqlDBName')]",
+					"[variables('sqlServerName')]"
+				  ],
+				  "properties": {
+					"storageUri": "[concat('https://',variables('storageAccountName'),'.blob.core.windows.net/input/schema.bacpac')]",
+					"administratorLogin": "[parameters('sqlAdministratorLogin')]",
+					"administratorLoginPassword": "[parameters('sqlAdministratorPassword')]",
+					"operationMode": "Import",
+					"storageKeyType": "Primary",
+					"storageKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+				  }
+				}
+			  ],
+            "dependsOn":[
+                "[resourceId('Microsoft.Sql/servers/', variables('sqlServerName'))]"
+            ]
+        },
+        {
+            "comments":"Open to world",
+            "type":"Microsoft.Sql/servers/firewallRules",
+            "kind":"v12.0",
+            "name":"[concat(variables('sqlServerName'), '/world')]",
+            "apiVersion":"2014-04-01-preview",
+            "location":"[parameters('location')]",
+            "properties":{
+                "startIpAddress":"0.0.0.0",
+                "endIpAddress":"255.255.255.255"
+            },
+            "resources":[
+
+            ],
+            "dependsOn":[
+                "[resourceId('Microsoft.Sql/servers/', variables('sqlServerName'))]"
+            ]
+        },
+        {
+            "comments":"SQL Server",
+            "type":"Microsoft.Sql/servers",
+            "name":"[variables('sqlServerName')]",
+            "apiVersion":"2014-04-01-preview",
+            "location":"[parameters('location')]",
+            "properties":{
+                "administratorLogin":"[parameters('sqlAdministratorLogin')]",
+                "administratorLoginPassword":"[parameters('sqlAdministratorPassword')]",
+                "version":"12.0"
+            },
+            "resources":[
+
+            ],
+            "dependsOn":[
+
+            ]
+        },
+        {
+            "comments":"",
+            "type":"Microsoft.Storage/storageAccounts",
+            "sku":{
+                "name":"Standard_RAGRS",
+                "tier":"Standard"
+            },
+            "kind":"Storage",
+            "name":"[variables('storageAccountName')]",
+            "apiVersion":"2016-01-01",
+            "location":"[parameters('location')]",
+            "tags":{
+
+            },
+            "properties":{
+
+            },
+            "resources":[
+
+            ],
+            "dependsOn":[
+
+            ]
+        },
+        {
+            "name":"[variables('dataFactoryName')]",
+            "apiVersion":"2015-10-01",
+            "type":"Microsoft.DataFactory/datafactories",
+            "location":"West US",
+            "resources":[
+                {
+                    "type":"linkedservices",
+                    "name":"[variables('storageLinkedServiceName')]",
+                    "dependsOn":[
+                        "[variables('dataFactoryName')]"
+                    ],
+                    "apiVersion":"2015-10-01",
+                    "properties":{
+                        "type":"AzureStorage",
+                        "description":"Azure Storage linked service",
+                        "typeProperties":{
+                            "connectionString":"[concat('DefaultEndpointsProtocol=https;AccountName=',variables('storageAccountName'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value)]"
+                        }
+                    }
+                },
+                {
+                    "type":"linkedservices",
+                    "name":"[variables('sqlLinkedServiceName')]",
+                    "apiVersion":"2015-10-01",
+                    "dependsOn":[
+                        "[variables('dataFactoryName')]"
+                    ],
+                    "properties":{
+                        "type":"AzureSqlDatabase",
+                        "description":"Azure SQL linked service",
+                        "typeProperties":{
+                            "connectionString":"[concat('Data Source=tcp:', variables('sqlServerName'), '.database.windows.net,1433;Initial Catalog=', variables('sqlDBName'), ';Integrated Security=False;User ID=', parameters('sqlAdministratorLogin'), ';Password=', parameters('sqlAdministratorPassword'), ';Connect Timeout=30;Encrypt=True')]"
+                        }
+                    }
+                },
+                {
+                    "type":"datasets",
+                    "name":"[variables('storageDataset')]",
+                    "dependsOn":[
+                        "[variables('dataFactoryName')]",
+                        "[variables('storageLinkedServiceName')]"
+                    ],
+                    "apiVersion":"2015-10-01",
+                    "properties":{
+                        "structure":[
+                            {
+                                "name":"IpAddress",
+                                "type":"String"
+                            },
+                            {
+                                "name":"col1",
+                                "type":"String"
+                            },
+                            {
+                                "name":"col2",
+                                "type":"String"
+                            },
+                            {
+                                "name":"DateStr",
+                                "type":"String"
+                            },
+                            {
+                                "name":"Request",
+                                "type":"String"
+                            },
+                            {
+                                "name":"Code",
+                                "type":"Int16"
+                            },
+                            {
+                                "name":"col3",
+                                "type":"String"
+                            },
+                            {
+                                "name":"col4",
+                                "type":"String"
+                            },
+                            {
+                                "name":"col5",
+                                "type":"String"
+                            },
+                            {
+                                "name":"col6",
+                                "type":"String"
+                            },
+                            {
+                                "name":"col7",
+                                "type":"String"
+                            }
+                        ],
+                        "published":false,
+                        "type":"AzureBlob",
+                        "linkedServiceName":"[variables('storageLinkedServiceName')]",
+                        "typeProperties":{
+                            "folderPath":"input/{Year}/{Month}/{Day}/{Hour}/",
+                            "format":{
+                                "type":"TextFormat",
+                                "rowDelimiter":"\n",
+                                "columnDelimiter":"|",
+                                "escapeChar":"",
+                                "nullValue":"NULL",
+                                "treatEmptyAsNull":true,
+                                "skipLineCount":0,
+                                "firstRowAsHeader":false
+                            },
+                            "partitionedBy":[
+                                {
+                                    "name":"Year",
+                                    "value":{
+                                        "type":"DateTime",
+                                        "date":"SliceStart",
+                                        "format":"yyyy"
+                                    }
+                                },
+                                {
+                                    "name":"Month",
+                                    "value":{
+                                        "type":"DateTime",
+                                        "date":"SliceStart",
+                                        "format":"MM"
+                                    }
+                                },
+                                {
+                                    "name":"Day",
+                                    "value":{
+                                        "type":"DateTime",
+                                        "date":"SliceStart",
+                                        "format":"dd"
+                                    }
+                                },
+                                {
+                                    "name":"Hour",
+                                    "value":{
+                                        "type":"DateTime",
+                                        "date":"SliceStart",
+                                        "format":"HH"
+                                    }
+                                }
+                            ]
+                        },
+                        "availability":{
+                            "frequency":"Hour",
+                            "interval":1,
+                            "style":"EndOfInterval"
+                        },
+                        "external":true,
+                        "policy":{
+                            "validation":{
+                                "minimumRows":10,
+                                "minimumSizeMB":0.0001
+                            },
+                            "externalData":{
+                                "retryInterval":"00:01:00",
+                                "retryTimeout":"00:10:00",
+                                "maximumRetry":3
+                            }
+                        }
+                    }
+                },
+                {
+                    "type":"datasets",
+                    "name":"[variables('stagingDataset')]",
+                    "dependsOn":[
+                        "[variables('dataFactoryName')]",
+                        "[variables('sqlLinkedServiceName')]"
+                    ],
+                    "apiVersion":"2015-10-01",
+                    "properties":{
+                        "structure":[
+                            {
+                                "name":"IpAddress"
+                            },
+                            {
+                                "name":"DateStr"
+                            },
+                            {
+                                "name":"Request"
+                            },
+                            {
+                                "name":"Code"
+                            },
+                            {
+                                "name":"ADFSliceIdentifier"
+                            }
+                        ],
+                        "published":false,
+                        "type":"AzureSqlTable",
+                        "linkedServiceName":"[variables('sqlLinkedServiceName')]",
+                        "typeProperties":{
+                            "tableName":"stg_log"
+                        },
+                        "availability":{
+                            "frequency":"Hour",
+                            "interval":1
+                        },
+                        "external":false,
+                        "policy":{
+
+                        }
+                    }
+                },
+                {
+                    "type":"datasets",
+                    "name":"[variables('factDataset')]",
+                    "dependsOn":[
+                        "[variables('dataFactoryName')]",
+                        "[variables('sqlLinkedServiceName')]"
+                    ],
+                    "apiVersion":"2015-10-01",
+                    "properties":{
+                        "structure":[
+                            {
+                                "name":"Code"
+                            },
+                            {
+                                "name":"Frequency"
+                            },
+                            {
+                                "name":"DateTime"
+                            }
+                        ],
+                        "published":false,
+                        "type":"AzureSqlTable",
+                        "linkedServiceName":"[variables('sqlLinkedServiceName')]",
+                        "typeProperties":{
+                            "tableName":"fact_freq"
+                        },
+                        "availability":{
+                            "frequency":"Day",
+                            "interval":1
+                        },
+                        "external":false,
+                        "policy":{
+
+                        }
+                    }
+                },
+                {
+                    "type":"dataPipelines",
+                    "name":"[variables('stagingPipeline')]",
+                    "dependsOn":[
+                        "[variables('dataFactoryName')]",
+                        "[variables('storageLinkedServiceName')]",
+                        "[variables('sqlLinkedServiceName')]",
+                        "[variables('storageDataset')]",
+                        "[variables('stagingDataset')]"
+                    ],
+                    "apiVersion":"2015-10-01",
+                    "properties":{
+                        "description":"Copy from Blob to Staging",
+                        "activities":[
+                            {
+                                "type":"Copy",
+                                "typeProperties":{
+                                    "source":{
+                                        "type":"BlobSource"
+                                    },
+                                    "sink":{
+                                        "type":"SqlSink",
+                                        "sliceIdentifierColumnName":"ADFSliceIdentifier",
+                                        "writeBatchSize":50,
+                                        "writeBatchTimeout":"00:10:00"
+                                    },
+                                    "translator":{
+                                        "type":"TabularTranslator",
+                                        "columnMappings":"IpAddress: IpAddress, DateStr: DateStr, Request: Request, Code: Code"
+                                    }
+                                },
+                                "inputs":[
+                                    {
+                                        "name":"[variables('storageDataset')]"
+                                    }
+                                ],
+                                "outputs":[
+                                    {
+                                        "name":"[variables('stagingDataset')]"
+                                    }
+                                ],
+                                "policy":{
+                                    "timeout":"01:00:00",
+                                    "concurrency":10,
+                                    "retry":3
+                                },
+                                "scheduler":{
+                                    "frequency":"Hour",
+                                    "interval":1
+                                },
+                                "name":"[variables('stagingPipeline')]"
+                            }
+                        ],
+                        "start":"2014-05-06T20:00:00Z",
+                        "end":"2014-06-22T04:00:00Z",
+                        "isPaused":false,
+                        "pipelineMode":"Scheduled"
+                    }
+                },
+                {
+                    "type":"dataPipelines",
+                    "name":"[variables('factPipeline')]",
+                    "dependsOn":[
+                        "[variables('dataFactoryName')]",
+                        "[variables('storageLinkedServiceName')]",
+                        "[variables('sqlLinkedServiceName')]",
+                        "[variables('factDataset')]",
+                        "[variables('stagingDataset')]"
+                    ],
+                    "apiVersion":"2015-10-01",
+                    "properties":{
+                        "description":"Update the frequency table",
+                        "activities":[
+                            {
+                                "type":"SqlServerStoredProcedure",
+                                "typeProperties":{
+                                    "storedProcedureName":"sp_calculateFrequency",
+                                    "storedProcedureParameters":{
+
+                                    }
+                                },
+                                "inputs":[
+                                    {
+                                        "name":"[variables('stagingDataset')]"
+                                    }
+                                ],
+                                "outputs":[
+                                    {
+                                        "name":"[variables('factDataset')]"
+                                    }
+                                ],
+                                "policy":{
+                                    "timeout":"01:00:00",
+                                    "concurrency":1,
+                                    "retry":3
+                                },
+                                "scheduler":{
+                                    "frequency":"Day",
+                                    "interval":1
+                                },
+                                "name":"[variables('factPipeline')]"
+                            }
+                        ],
+                        "start":"2014-05-06T20:00:00Z",
+                        "end":"2014-06-22T04:00:00Z",
+                        "isPaused":false,
+                        "pipelineMode":"Scheduled"
+                    }
+                }
+            ],
+			"dependsOn":[
+				"[resourceId('Microsoft.Sql/servers/', variables('sqlServerName'))]",
+				"[resourceId('Microsoft.Sql/servers/databases', variables('sqlServerName'), variables('sqlDBName'))]",
+				"[resourceId('Microsoft.Sql/servers/databases/extensions', variables('sqlServerName'), variables('sqlDBName'), 'Imp')]",
+
+			]
+		}
+    ],
+    "outputs":{
+        "dbEndpoint":{
+            "type":"string",
+            "value":"[concat(variables('sqlServerName'), '.database.windows.net')]"
+        },
+		"dbName":{
+            "type":"string",
+            "value":"[variables('sqlDBName')]"
+        },
+    }
+}

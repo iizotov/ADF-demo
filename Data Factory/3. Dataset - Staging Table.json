@@ -1,0 +1,34 @@
+{
+    "name": "StagingTable",
+    "properties": {
+        "structure": [
+            {
+                "name": "IpAddress"
+            },
+            {
+                "name": "DateStr"
+            },
+            {
+                "name": "Request"
+            },
+            {
+                "name": "Code"
+            },
+            {
+                "name": "ADFSliceIdentifier"
+            }
+        ],
+        "published": false,
+        "type": "AzureSqlTable",
+        "linkedServiceName": "AzureSqlLinkedService",
+        "typeProperties": {
+            "tableName": "stg_log"
+        },
+        "availability": {
+            "frequency": "Hour",
+            "interval": 1
+        },
+        "external": false,
+        "policy": {}
+    }
+}
