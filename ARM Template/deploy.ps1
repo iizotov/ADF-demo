@@ -124,7 +124,7 @@ catch {
 if($isInteractive -or $PSCmdlet.ParameterSetName -eq 'Interactive') {
     $resourceGroupName = ("rg" + "-" + $resourceGroupPrefix + "-" + -join ((65..90) + (97..122) | Get-Random -Count 6 | % {[char]$_})).ToLower()
 
-    $subscriptionId = (Get-AzureRmSubscription | Out-GridView -Title "Pick a Subscription ..." -PassThru).SubscriptionId
+    $subscriptionId = (Get-AzureRmSubscription | Out-GridView -Title "Pick a Subscription ..." -PassThru).Id
     Select-AzureRmSubscription -SubscriptionId $subscriptionId
     Write-Output "Selected $subscriptionId"
     $resourceGroupLocation = $allowedRegions | Out-GridView -Title "Pick a region" -PassThru
